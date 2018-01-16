@@ -14,16 +14,21 @@ const (
 //Для этого нужен кеш: при первом объявлении типа кладем его в кеш, а затем отдаем _тот_же_самый_ экземпляр
 var typeCash map[string]*graphql.Object = make(map[string]*graphql.Object)
 
-func ReflectType(obj interface{}) *graphql.Object {
+func ReflectType(obj interface{}) graphql.Output {
 	return doReflect(reflect.TypeOf(obj))
 }
 
-func doReflect(t reflect.Type) *graphql.Object {
+func doReflect(t reflect.Type) graphql.Output {
 	var (
 		name, description, nameField string
 		fields                       map[string]*graphql.Field
 		tmp                          *graphql.Object
 	)
+
+	//Если наш тип — массив структур, то делаем обертку NewList и проваливаемся в обработку типа элемента массива
+	if t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Struct {
+		return graphql.NewList( doReflect(t.Elem()) )
+	}
 
 	//По умолчанию: Name — по названию типа (структуры) в коде, а Description не указан
 	name = t.Name()
